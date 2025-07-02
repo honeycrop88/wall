@@ -129,8 +129,6 @@ export default function Wall() {
           </div>
         </main>
       </div>
-      {/* Google Fonts for Comic Neue */}
-      <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet" />
     </div>
   );
 }
