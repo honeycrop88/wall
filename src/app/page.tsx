@@ -2,44 +2,64 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "./components/ui/button";
+import { supabase } from "../lib/supabase";
 
 const PLACEHOLDER_PHOTO = "/placeholder.jpg";
 
 interface Post {
   id: string;
-  name: string;
+  author_name: string;
   message: string;
-  createdAt: number;
-  photoUrl: string;
+  created_at: string;
+  photo_url: string;
 }
 
 export default function Wall() {
   const [message, setMessage] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const messageRef = useRef<HTMLTextAreaElement>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Load posts from localStorage on mount
+  // Fetch posts from Supabase on mount
   useEffect(() => {
-    const stored = localStorage.getItem("wall-posts");
-    if (stored) setPosts(JSON.parse(stored));
+    fetchPosts();
+    // Subscribe to new posts in realtime
+    const channel = supabase
+      .channel('realtime:posts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, payload => {
+        setPosts(prev => [payload.new as Post, ...prev].slice(0, 50));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
-  // Save posts to localStorage on change
-  useEffect(() => {
-    localStorage.setItem("wall-posts", JSON.stringify(posts));
-  }, [posts]);
 
-  function handleShare() {
+  async function fetchPosts() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (!error && data) setPosts(data as Post[]);
+    setLoading(false);
+  }
+
+  async function handleShare() {
     if (!message.trim()) return;
-    const newPost: Post = {
-      id: crypto.randomUUID(),
-      name: "Greg Wientjes",
-      message: message.trim(),
-      createdAt: Date.now(),
-      photoUrl: PLACEHOLDER_PHOTO,
-    };
-    setPosts([newPost, ...posts].slice(0, 50));
-    setMessage("");
-    messageRef.current?.focus();
+    const { error } = await supabase.from('posts').insert([
+      {
+        author_name: "Greg Wientjes",
+        message: message.trim(),
+        photo_url: PLACEHOLDER_PHOTO,
+      },
+    ]);
+    if (error) {
+      alert('Supabase error: ' + error.message);
+    } else {
+      setMessage("");
+      messageRef.current?.focus();
+      // No need to manually update posts, realtime will handle it
+    }
   }
 
   return (
@@ -84,27 +104,28 @@ export default function Wall() {
               <Button
                 className="bg-blue-500 hover:bg-blue-600 rounded-lg px-6 py-2 font-bold text-base shadow text-white border-b-4 border-blue-700"
                 onClick={handleShare}
-                disabled={!message.trim()}
+                disabled={!message.trim() || loading}
                 style={{fontFamily: 'Comic Neue, sans-serif'}}
               >
-                Share
+                {loading ? "Sharing..." : "Share"}
               </Button>
             </div>
           </div>
           <div className="flex flex-col gap-4">
-            {posts.length === 0 && (
+            {posts.length === 0 && !loading && (
               <div className="text-center text-gray-400">No posts yet. Be the first!</div>
             )}
             {posts.map((post, idx) => (
               <div key={post.id}>
                 <div className="mb-1">
-                  <span className="font-bold" style={{fontFamily: 'Comic Neue, sans-serif'}}>{post.name}</span>
+                  <span className="font-bold" style={{fontFamily: 'Comic Neue, sans-serif'}}>{post.author_name}</span>
                 </div>
                 <div className="text-gray-800 whitespace-pre-line break-words break-all" style={{fontFamily: 'Comic Neue, sans-serif'}}>{post.message}</div>
-                <div className="text-xs text-gray-400 mt-1">{new Date(post.createdAt).toLocaleString()}</div>
+                <div className="text-xs text-gray-400 mt-1">{new Date(post.created_at).toLocaleString()}</div>
                 {idx !== posts.length - 1 && <hr className="my-4 border-t-2 border-gray-200" />}
               </div>
             ))}
+            {loading && <div className="text-center text-gray-400">Loading...</div>}
           </div>
         </main>
       </div>
