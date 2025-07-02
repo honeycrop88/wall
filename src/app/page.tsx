@@ -1,103 +1,115 @@
+"use client";
 import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
+import { Button } from "./components/ui/button";
 
-export default function Home() {
+const PLACEHOLDER_PHOTO = "/placeholder.jpg";
+
+interface Post {
+  id: string;
+  name: string;
+  message: string;
+  createdAt: number;
+  photoUrl: string;
+}
+
+export default function Wall() {
+  const [message, setMessage] = useState("");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load posts from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("wall-posts");
+    if (stored) setPosts(JSON.parse(stored));
+  }, []);
+  // Save posts to localStorage on change
+  useEffect(() => {
+    localStorage.setItem("wall-posts", JSON.stringify(posts));
+  }, [posts]);
+
+  function handleShare() {
+    if (!message.trim()) return;
+    const newPost: Post = {
+      id: crypto.randomUUID(),
+      name: "Greg Wientjes",
+      message: message.trim(),
+      createdAt: Date.now(),
+      photoUrl: PLACEHOLDER_PHOTO,
+    };
+    setPosts([newPost, ...posts].slice(0, 50));
+    setMessage("");
+    messageRef.current?.focus();
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div className="min-h-screen bg-gray-50 font-[Comic_Neue,sans-serif]">
+      {/* Header */}
+      <div className="w-full bg-blue-500 text-white text-xl font-bold px-6 py-2 rounded-t-lg shadow flex items-center" style={{fontFamily: 'Comic Neue, sans-serif'}}>
+        This is test project.
+      </div>
+      <div className="flex flex-col md:flex-row max-w-4xl mx-auto bg-white rounded-b-lg shadow-lg overflow-hidden">
+        {/* Sidebar */}
+        <aside className="md:w-1/3 w-full bg-white flex flex-col items-center p-6 border-r border-gray-200">
+          <Image
+            src={PLACEHOLDER_PHOTO}
+            alt="Profile photo"
+            width={140}
+            height={140}
+            className="rounded-lg object-cover border-4 border-white shadow mb-4"
+          />
+          <div className="text-2xl font-bold mb-2" style={{fontFamily: 'Comic Neue, sans-serif'}}>Greg Wientjes</div>
+          <div className="text-lg text-gray-700 mb-6">Wall</div>
+          <div className="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 mb-2">
+            <div className="font-bold text-xs mb-1">Information</div>
+            <div className="text-xs mb-2">Networks<br/><span className="font-normal">Stanford Alum</span></div>
+            <div className="text-xs">Current City<br/><span className="font-normal">Palo Alto, CA</span></div>
+          </div>
+        </aside>
+        {/* Wall */}
+        <main className="flex-1 p-6 flex flex-col gap-6">
+          {/* Input */}
+          <div className="mb-2">
+            <textarea
+              ref={messageRef}
+              className="w-full border-2 border-dashed border-blue-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 font-[Comic_Neue,sans-serif]"
+              placeholder="Write something..."
+              value={message}
+              maxLength={280}
+              rows={3}
+              onChange={e => setMessage(e.target.value)}
+              style={{fontFamily: 'Comic Neue, sans-serif'}}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <div className="flex justify-end mt-2">
+              <Button
+                className="bg-blue-500 hover:bg-blue-600 rounded-lg px-6 py-2 font-bold text-base shadow text-white border-b-4 border-blue-700"
+                onClick={handleShare}
+                disabled={!message.trim()}
+                style={{fontFamily: 'Comic Neue, sans-serif'}}
+              >
+                Share
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4">
+            {posts.length === 0 && (
+              <div className="text-center text-gray-400">No posts yet. Be the first!</div>
+            )}
+            {posts.map((post, idx) => (
+              <div key={post.id}>
+                <div className="mb-1">
+                  <span className="font-bold" style={{fontFamily: 'Comic Neue, sans-serif'}}>{post.name}</span>
+                </div>
+                <div className="text-gray-800 whitespace-pre-line break-words break-all" style={{fontFamily: 'Comic Neue, sans-serif'}}>{post.message}</div>
+                <div className="text-xs text-gray-400 mt-1">{new Date(post.createdAt).toLocaleString()}</div>
+                {idx !== posts.length - 1 && <hr className="my-4 border-t-2 border-gray-200" />}
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+      {/* Google Fonts for Comic Neue */}
+      <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet" />
     </div>
   );
 }
